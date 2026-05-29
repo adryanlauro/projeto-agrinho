@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jogo Agro Forte Sustentável</title>
+<style>
+body {
+    margin:0;
+    font-family: Arial, sans-serif;
+    background: linear-gradient(to top, #a2d5c6, #f4fff4);
+    overflow: hidden;
+}
+
+h1 {
+    text-align:center;
+    color:#2e7d32;
+    margin-top:20px;
+}
+
+#gameArea {
+    position: relative;
+    width: 90%;
+    max-width: 800px;
+    height: 70vh;
+    border: 3px solid #2e7d32;
+    border-radius: 10px;
+    margin: 20px auto;
+    background: linear-gradient(to top, #7ec850, #a2d5c6);
+    overflow: hidden;
+}
+
+.player {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 60px;
+    background-color: #ffeb3b;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    transition: 0.1s;
+}
+
+.item {
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: bold;
+    color:white;
+    cursor:pointer;
+}
+
+.tree { background:#2e7d32; }
+.water { background:#2196f3; }
+.trash { background:#f44336; }
+
+#scoreboard {
+    text-align:center;
+    font-size: 1.2rem;
+    color:#2e7d32;
+    margin-top:10px;
+}
+
+#message {
+    text-align:center;
+    font-size:1.2rem;
+    font-weight:bold;
+    height:25px;
+}
+
+#startScreen, #gameOverScreen {
+    position: fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    background: rgba(0,0,0,0.8);
+    color:white;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    font-size:2rem;
+    z-index:10;
+}
+
+button {
+    margin-top:20px;
+    padding:15px 30px;
+    font-size:1rem;
+    background:#52b788;
+    border:none;
+    border-radius:10px;
+    color:white;
+    cursor:pointer;
+    transition:0.3s;
+}
+
+button:hover {
+    background:#2e7d32;
+}
+</style>
+</head>
+<body>
+
+<h1>🌱 Agro Forte - Futuro Sustentável 🌱</h1>
+
+<div id="gameArea">
+    <div class="player" id="player">🚜</div>
+</div>
+
+<div id="scoreboard">
+    Árvores: <span id="trees">0</span> | Água: <span id="water">0</span> | Lixo evitado: <span id="trash">0</span> | Vidas: <span id="lives">3</span>
+</div>
+
+<div id="message"></div>
+
+<div id="startScreen">
+    <h2>🌱 Bem-vindo ao Agro Sustentável 🌱</h2>
+    <p>Use as setas esquerda/direita para coletar árvores e água, evite o lixo!</p>
+    <button onclick="startGame()">Iniciar Jogo</button>
+</div>
+
+<div id="gameOverScreen" style="display:none;">
+    <h2>Fim de Jogo!</h2>
+    <p>Sua pontuação:</p>
+    <div id="finalScore"></div>
+    <button onclick="restartGame()">Jogar Novamente</button>
+</div>
+
+<script>
+const gameArea = document.getElementById("gameArea");
+const player = document.getElementById("player");
+const treesCounter = document.getElementById("trees");
+const waterCounter = document.getElementById("water");
+const trashCounter = document.getElementById("trash");
+const livesCounter = document.getElementById("lives");
+const message = document.getElementById("message");
+
+const startScreen = document.getElementById("startScreen");
+const gameOverScreen = document.getElementById("gameOverScreen");
+const finalScore = document.getElementById("finalScore");
+
+let playerPos = 50;
+const playerSpeed = 5;
+let trees = 0, water = 0, trash = 0, lives = 3;
+let gameInterval, spawnInterval, speedIncreaseInterval;
+let gameRunning = false;
+
+function startGame() {
+    startScreen.style.display = "none";
+    gameRunning = true;
+    trees = water = trash = 0;
+    lives = 3;
+    updateScore();
+    spawnItems();
+    gameInterval = setInterval(updateItems, 20);
+    speedIncreaseInterval = setInterval(() => { itemSpeed += 0.2; }, 5000);
+}
+
+function restartGame(){
+    gameOverScreen.style.display = "none";
+    startGame();
+}
+
+document.addEventListener('keydown', (e) => {
+    if(!gameRunning) return;
+    if(e.key === 'ArrowLeft' && playerPos > 0){
+        playerPos -= playerSpeed;
+    }
+    if(e.key === 'ArrowRight' && playerPos < 100){
+        playerPos += playerSpeed;
+    }
+    player.style.left = playerPos + "%";
+});
+
+let items = [];
+let itemSpeed = 2;
+
+function createItem(type){
+    const item = document.createElement("div");
+    item.classList.add("item", type);
+    if(type==="tree") item.textContent="🌳";
+    if(type==="water") item.textContent="💧";
+    if(type==="trash") item.textContent="🗑️";
+    item.style.left = Math.random() * (gameArea.offsetWidth - 50) + "px";
+    item.style.top = "-50px";
+    gameArea.appendChild(item);
+    items.push({el:item, type:type});
+}
+
+function spawnItems(){
+    spawnInterval = setInterval(() => {
+        if(!gameRunning) return;
+        const rand = Math.random();
+        if(rand < 0.4) createItem("tree");
+        else if(rand < 0.7) createItem("water");
+        else createItem("trash");
+    }, 1000);
+}
+
+function updateItems(){
+    items.forEach((itemObj, index)=>{
+        let top = parseFloat(itemObj.el.style.top);
+        top += itemSpeed;
+        itemObj.el.style.top = top + "px";
+
+        const playerRect = player.getBoundingClientRect();
+        const itemRect = itemObj.el.getBoundingClientRect();
+
+        // colisão
+        if(playerRect.left < itemRect.right && playerRect.right > itemRect.left &&
+           playerRect.top < itemRect.bottom && playerRect.bottom > itemRect.top){
+            if(itemObj.type==="tree") trees++;
+            if(itemObj.type==="water") water++;
+            if(itemObj.type==="trash") trash++;
+            updateScore();
+            message.textContent = itemObj.type==="trash" ? "Lixo evitado! 🌟" : "Boa! 👍";
+            setTimeout(()=> message.textContent="", 800);
+            itemObj.el.remove();
+            items.splice(index,1);
+        } 
+        // caiu no chão
+        else if(top > gameArea.offsetHeight){
+            if(itemObj.type!=="trash") lives--;
+            updateScore();
+            itemObj.el.remove();
+            items.splice(index,1);
+            if(lives<=0) endGame();
+        }
+    });
+}
+
+function updateScore(){
+    treesCounter.textContent = trees;
+    waterCounter.textContent = water;
+    trashCounter.textContent = trash;
+    livesCounter.textContent = lives;
+}
+
+function endGame(){
+    gameRunning = false;
+    clearInterval(spawnInterval);
+    clearInterval(gameInterval);
+    clearInterval(speedIncreaseInterval);
+    items.forEach(i=>i.el.remove());
+    items=[];
+    finalScore.innerHTML = `🌳 ${trees} | 💧 ${water} | 🗑️ ${trash}`;
+    gameOverScreen.style.display = "flex";
+}
+</script>
+
+</body>
+</html>
